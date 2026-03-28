@@ -11,7 +11,7 @@ PRICE_THRESHOLDS: list[tuple[str, int]] = [
     ("iphone 17 pro max", 75_000),
     ("iphone 17 pro",     75_000),
     ("iphone 17 plus",    60_000),
-    ("iphone 17 air",     60_000),
+    ("iphone air",        72_000),
     ("iphone 17",         60_000),
     # iPhone 16 serisi
     ("iphone 16 pro max", 65_000),
