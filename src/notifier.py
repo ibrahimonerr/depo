@@ -42,11 +42,26 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
     thresh_fmt  = _format_price(threshold)
     savings_fmt = _format_price(savings)
 
-    title_safe = deal["title"].replace("*", "").replace("_", "").replace("`", "")[:110]
-    detected   = deal.get("detected_at", datetime.now().strftime("%d.%m.%Y %H:%M"))
+    title_clean = deal["title"].replace("*", "").replace("_", "").replace("`", "")
+    
+    # Gereksiz kelimeleri temizle
+    TO_REMOVE = [
+        "Apple ", "iPhone için ", " özellikli ",
+        "Siyah", "Beyaz", "Mavi", "Yeşil", "Sarı", "Kırmızı", "Mor", "Pembe",
+        "Titanyum", "Naturel", "Doğal", "Çöl", "Altın", "Gümüş", "Uzay", "Gece", "Yıldız",
+        "Black", "White", "Blue", "Green", "Yellow", "Red", "Purple", "Pink",
+        "Titanium", "Natural", "Desert", "Gold", "Silver", "Space", "Midnight", "Starlight"
+    ]
+    for word in TO_REMOVE:
+        title_clean = title_clean.replace(word, "")
+    
+    # Fazla boşlukları temizle ve boyutu koru
+    title_clean = " ".join(title_clean.split()).strip()[:100]
+    
+    detected = deal.get("detected_at", datetime.now().strftime("%d.%m.%Y %H:%M"))
 
     message = (
-        f"📱 *{title_safe} — {price_fmt} ₺*\n"
+        f"📱 *{title_clean} — {price_fmt} ₺*\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
         f"📦 Durum: *{deal.get('condition', 'İkinci El / Depo')}*\n\n"
