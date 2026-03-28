@@ -121,9 +121,9 @@ def parse_products(html: str) -> list[dict]:
             title_lower_check = title.lower()
             EXCLUDED_KEYWORDS = [
                 "kılıf", "case", "charger", "şarj", "kablo", "cable",
-                "koruyucu", "ekran", "tempered", "glass", "adapter",
+                "koruyucu", "tempered glass", "screen protector", "adapter",
                 "adaptör", "watch", "airpods", "ipad", "macbook",
-                "mouse", "keyboard", "klavye",
+                "mouse", "keyboard", "klavye", "magsafe pil", "battery pack",
             ]
             if any(kw in title_lower_check for kw in EXCLUDED_KEYWORDS):
                 continue
@@ -153,13 +153,17 @@ def parse_products(html: str) -> list[dict]:
                             price_text = txt
                             break
 
-            # 3. Kartın metin satırlarından TL içereni bul
+            # 3. Kartın metin satırlarından TL içereni bul (uzunluk limitini artırdık)
             if not price:
-                for line in card.get_text(separator="\n").split("\n"):
+                lines = card.get_text(separator="\n").split("\n")
+                for line in lines:
                     line = line.strip()
-                    if "TL" in line and any(c.isdigit() for c in line) and len(line) < 35:
+                    if not line:
+                        continue
+                    # TL ile biten veya içeren, sadece rakam/nokta/virgül içeren fiyat satırı
+                    if "TL" in line and any(c.isdigit() for c in line) and len(line) < 50:
                         cand = parse_price(line)
-                        if cand:
+                        if cand and cand >= MIN_PRICE_THRESHOLD:
                             price = cand
                             price_text = line
                             break
