@@ -46,9 +46,8 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
     detected   = deal.get("detected_at", datetime.now().strftime("%d.%m.%Y %H:%M"))
 
     message = (
-        f"📱 *{title_safe}*\n"
+        f"📱 *{title_safe} — {price_fmt} ₺*\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Fiyat: *{price_fmt} ₺*\n"
         f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
         f"📦 Durum: *{deal.get('condition', 'İkinci El / Depo')}*\n\n"
         f"🛒 [Ürünü Görüntüle]({deal['link']})"
