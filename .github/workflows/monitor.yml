@@ -37,6 +37,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         run: python src/scraper.py
 
       # ── 5. State değişikliğini commit et ─────────────────────────────────
