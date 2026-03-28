@@ -62,7 +62,6 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
 
     message = (
         f"📱 *{title_clean} — {price_fmt} ₺*\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
         f"📦 Durum: *{deal.get('condition', 'İkinci El / Depo')}*\n\n"
         f"🛒 [Ürünü Görüntüle]({deal['link']})"
@@ -93,7 +92,7 @@ def send_test_notification() -> bool:
     """Kurulumu doğrulamak için test bildirimi gönderir."""
     test_deal = {
         "asin":        "TEST000000",
-        "title":       "Apple iPhone 15 Pro Max 256GB Siyah Titanyum — [TEST MESAJI]",
+        "title":       "Apple iPhone 15 Pro Max 256GB Siyah Titanyum",
         "price":       42_000,
         "link":        "https://www.amazon.com.tr",
         "condition":   "İyi — Kutu hasarlı",
