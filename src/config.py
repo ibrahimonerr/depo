@@ -67,6 +67,9 @@ SEARCH_URLS: list[str] = [
 ]
 
 # ── Bildirim Ayarları ─────────────────────────────────────────────────────────
+# Bu fiyatın ALTINDAKİ ürünler (aksesuar vb.) direkt yok sayılır.
+MIN_PRICE_THRESHOLD: int = 30_000
+
 # Aynı ürün için bu oranda fiyat düşüşü olursa tekrar bildirim gönderilir
 RENEW_THRESHOLD_PCT: float = 0.90   # %10 daha ucuzsa yeniden bildir
 

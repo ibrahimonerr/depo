@@ -32,8 +32,8 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from config import (
-    CHROME_VERSIONS, MAX_DELAY, MIN_DELAY, RENEW_THRESHOLD_PCT,
-    SEARCH_URLS, get_threshold,
+    CHROME_VERSIONS, MAX_DELAY, MIN_DELAY, MIN_PRICE_THRESHOLD,
+    RENEW_THRESHOLD_PCT, SEARCH_URLS, get_threshold,
 )
 from notifier import send_telegram_notification, send_test_notification
 
@@ -355,6 +355,11 @@ def main(dry_run: bool = False) -> None:
     new_deals = 0
 
     for product in unique:
+        # ── 1. Minimum fiyat kontrolü (Aksesuar filtreleme)
+        if product["price"] < MIN_PRICE_THRESHOLD:
+            continue
+
+        # ── 2. Model ve Üst Eşik Kontrolü
         model, threshold = get_threshold(product["title"])
         if threshold is None:
             continue
