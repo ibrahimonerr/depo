@@ -117,17 +117,6 @@ def parse_products(html: str) -> list[dict]:
             if not title:
                 continue
 
-            # ── Aksesuar filtresi: kılıf, şarj cihazı vs. hariç tut
-            title_lower_check = title.lower()
-            EXCLUDED_KEYWORDS = [
-                "kılıf", "case", "charger", "şarj", "kablo", "cable",
-                "koruyucu", "tempered glass", "screen protector", "adapter",
-                "adaptör", "watch", "airpods", "ipad", "macbook",
-                "mouse", "keyboard", "klavye", "magsafe pil", "battery pack",
-            ]
-            if any(kw in title_lower_check for kw in EXCLUDED_KEYWORDS):
-                continue
-
             # ── Fiyat: çok katmanlı fallback
             price: int | None = None
             price_text = ""

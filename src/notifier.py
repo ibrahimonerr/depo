@@ -46,15 +46,12 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
     detected   = deal.get("detected_at", datetime.now().strftime("%d.%m.%Y %H:%M"))
 
     message = (
-        "🔥 *AMAZON DEPO — iPhone FIRSATI!*\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"📱 *{title_safe}*\n\n"
+        f"📱 *{title_safe}*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Fiyat: *{price_fmt} ₺*\n"
-        f"📊 Eşik:  _{thresh_fmt} ₺_\n"
-        f"💸 Tasarruf: *{savings_fmt} ₺* (%{savings_pct})\n"
-        f"📦 Durum: _{deal.get('condition', 'Belirtilmemiş')}_\n\n"
-        f"🛒 [Ürünü Hemen Gör →]({deal['link']})\n\n"
-        f"⏰ _{detected}_"
+        f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
+        f"📦 Durum: {deal.get('condition', 'İkinci El / Depo')}\n\n"
+        f"🛒 [Ürünü Görüntüle]({deal['link']})"
     )
 
     url = TELEGRAM_API.format(token=token, method="sendMessage")
