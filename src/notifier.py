@@ -50,7 +50,7 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Fiyat: *{price_fmt} ₺*\n"
         f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
-        f"📦 Durum: {deal.get('condition', 'İkinci El / Depo')}\n\n"
+        f"📦 Durum: *{deal.get('condition', 'İkinci El / Depo')}*\n\n"
         f"🛒 [Ürünü Görüntüle]({deal['link']})"
     )
 

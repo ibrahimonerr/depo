@@ -178,12 +178,12 @@ def parse_products(html: str) -> list[dict]:
             if dp_match:
                 full_link = f"https://www.amazon.com.tr/dp/{dp_match.group(1)}"
 
-            # ── Durum / Depo notu
+            # ── Durum / Depo notuna odaklan (Yeni gibi, Çok iyi vb.)
             condition = "İkinci El / Depo Ürünü"
             kws = [
-                "hasar", "iyi", "kabul", "yenile", "mükemmel",
-                "az kullanılmış", "İkinci El", "very good", "good",
-                "acceptable", "like new", "renewed",
+                "yeni gibi", "çok iyi", "iyi", "kabul edilebilir", "mükemmel",
+                "hasar", "yenile", "az kullanılmış", "İkinci El",
+                "like new", "very good", "good", "acceptable", "renewed",
             ]
             for line in card.get_text(separator="\n").split("\n"):
                 line = line.strip()
