@@ -1,0 +1,50 @@
+name: 🔍 Amazon Depo iPhone Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # Her 5 dakikada bir
+  workflow_dispatch:          # Manuel tetikleme (test için)
+
+permissions:
+  contents: write   # seen_deals.json'u commit etmek için gerekli
+
+jobs:
+  monitor:
+    name: Scan Warehouse Deals
+    runs-on: ubuntu-latest
+    timeout-minutes: 4   # 5 dk aralıkta → maks 4 dk çalışma süresi
+
+    steps:
+      # ── 1. Repo'yu indir ──────────────────────────────────────────────────
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Python kur ─────────────────────────────────────────────────────
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ── 3. Bağımlılıkları yükle ───────────────────────────────────────────
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      # ── 4. Botu çalıştır ──────────────────────────────────────────────────
+      - name: 🤖 Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python src/scraper.py
+
+      # ── 5. State değişikliğini commit et ─────────────────────────────────
+      # [skip ci] → bu commit yeni bir workflow tetiklemesin
+      - name: 💾 Commit state changes
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add state/seen_deals.json
+          git diff --staged --quiet || git commit -m "chore: update seen deals state [skip ci]"
+          git push
