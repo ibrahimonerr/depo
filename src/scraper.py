@@ -401,6 +401,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Amazon Depo iPhone Monitor")
     parser.add_argument("--dry-run", action="store_true", help="Bildirim göndermeden logla")
     parser.add_argument("--test",    action="store_true", help="Test bildirimi gönder ve çık")
+    parser.add_argument("--loop",    action="store_true", help="5 dakikada bir sürekli çalıştır")
     args = parser.parse_args()
 
     if args.test:
@@ -409,4 +410,19 @@ if __name__ == "__main__":
         log("✅ Başarılı!" if ok else "❌ Başarısız!")
         sys.exit(0 if ok else 1)
 
-    main(dry_run=args.dry_run)
+    if args.loop:
+        INTERVAL = 5 * 60  # 5 dakika
+        log(f"🔄 Loop modu aktif — her {INTERVAL // 60} dakikada bir taranacak")
+        log("⛔ Durdurmak için Ctrl+C yapın\n")
+        run = 1
+        while True:
+            log(f"━━━ Tarama #{run} ━━━")
+            try:
+                main(dry_run=args.dry_run)
+            except Exception as exc:
+                log(f"❌ Beklenmeyen hata: {exc}")
+            log(f"⏳ Sonraki tarama {INTERVAL // 60} dakika sonra...\n")
+            time.sleep(INTERVAL)
+            run += 1
+    else:
+        main(dry_run=args.dry_run)
