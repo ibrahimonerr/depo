@@ -21,10 +21,11 @@ if %errorlevel% neq 0 (
 
 :: Gerekli kutuphaneleri yukle
 echo [1/2] Kutup haneler kontrol ediliyor/yukleniyor...
-python -m pip install --upgrade pip >nul
-pip install curl_cffi beautifulsoup4 lxml requests >nul
+python -m pip install --upgrade pip
+python -m pip install curl_cffi beautifulsoup4 lxml requests
 
 :: Botu baslat
+echo.
 echo [2/2] Bot baslatiliyor (5 dk dongu modu aktif)...
 echo Durdurmak icin bu pencereyi kapatabilir veya Ctrl+C yapabilirsiniz.
 echo.
