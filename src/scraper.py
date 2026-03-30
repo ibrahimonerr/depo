@@ -231,6 +231,7 @@ def warmup_session(session) -> bool:
                 "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3",
             },
+            verify=False
         )
         if resp.status_code == 200:
             log("   ✅ Session hazır")
@@ -253,6 +254,7 @@ def fetch_page(url: str, session) -> str | None:
                 "Accept-Language": "tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3",
                 "Referer":         "https://www.amazon.com.tr/",
             },
+            verify=False
         )
         if resp.status_code == 200:
             return resp.text
@@ -293,9 +295,9 @@ def main(dry_run: bool = False) -> None:
     state = load_state()
     log(f"📋 Kayıtlı {len(state['seen'])} ürün var")
 
-    chrome = random.choice(CHROME_VERSIONS)
-    session = cffi.Session(impersonate=chrome)
-    log(f"🌐 Impersonation: {chrome}")
+    # Session oluştur (Windows SSL hatalarını önlemek için verify=False)
+    session = cffi.Session(impersonate=random.choice(CHROME_VERSIONS), verify=False)
+    log(f"🌐 Impersonation: {session.impersonate}")
 
     # Session warmup: ana sayfayı ziyaret ederek cookie al
     warmup_session(session)
