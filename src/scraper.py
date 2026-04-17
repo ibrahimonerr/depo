@@ -318,7 +318,7 @@ def is_blocked(html: str) -> bool:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main(session, dry_run: bool = False) -> None:
+def main(session, dry_run: bool = False) -> bool:
     log("🚀 Amazon Depo iPhone Monitor başlatıldı")
     if dry_run:
         log("⚠️  DRY-RUN modu — bildirim gönderilmeyecek")
@@ -372,7 +372,7 @@ def main(session, dry_run: bool = False) -> None:
     if blocked_urls >= len(SEARCH_URLS):
         log("\n⛔ Tüm URL'ler erişilemez. Bir sonraki çalışmada tekrar denenecek.")
         save_state(state)
-        return
+        return False
 
     # ASIN bazında deduplikasyon
     seen: set[str] = set()
@@ -433,6 +433,7 @@ def main(session, dry_run: bool = False) -> None:
     log(f"📊 Toplam bildirim: {state.get('deals_found_total', 0)}")
     save_state(state)
     log("💾 State kaydedildi")
+    return True
 
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
@@ -460,10 +461,10 @@ if __name__ == "__main__":
         last_session_refresh = 0
 
         while True:
-            # Her 2 saatte bir veya ilk başlangıçta oturumu yenile
+            # Her 2 saatte bir veya session sıfırlanmışsa yeni oturum oluştur
             current_time = time.time()
             if session is None or (current_time - last_session_refresh) > 7200:
-                log(f"🌐 {'Yeni oturum oluşturuluyor' if session is None else 'Oturum tazeleniyor'}...")
+                log(f"🌐 {'Yeni oturum oluşturuluyor' if session is None else 'Oturum tazeleniyor (Zaman aşımı)'}...")
                 session = cffi.Session(impersonate=random.choice(CHROME_VERSIONS), verify=False)
                 warmup_session(session)
                 last_session_refresh = current_time
@@ -471,9 +472,14 @@ if __name__ == "__main__":
 
             log(f"━━━ Tarama #{run} ━━━")
             try:
-                main(session, dry_run=args.dry_run)
+                # main() artık başarılı olup olmadığını dönsün
+                success = main(session, dry_run=args.dry_run)
+                if not success:
+                    log("⚠️  Tarama başarısız oldu, bir sonraki turda oturum yenilenecek.")
+                    session = None # Bir sonraki döngüde yeni session oluşturulmasını tetikler
             except Exception as exc:
                 log(f"❌ Beklenmeyen hata: {exc}")
+                session = None # Hata durumunda da session'ı sıfırla
             
             log(f"⏳ Sonraki tarama {INTERVAL} saniye sonra...\n")
             time.sleep(INTERVAL)
