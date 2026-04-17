@@ -26,7 +26,7 @@ python -m pip install curl_cffi beautifulsoup4 lxml requests
 
 :: Botu baslat
 echo.
-echo [2/2] Bot baslatiliyor (5 dk dongu modu aktif)...
+echo [2/2] Bot baslatiliyor (80 sn dongu modu aktif)...
 echo Durdurmak icin bu pencereyi kapatabilir veya Ctrl+C yapabilirsiniz.
 echo.
 

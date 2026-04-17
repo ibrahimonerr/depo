@@ -25,9 +25,10 @@ echo "[1/2] Kutup haneler kontrol ediliyor..."
 python3 -m pip install --upgrade pip > /dev/null
 python3 -m pip install curl_cffi beautifulsoup4 lxml requests > /dev/null
 
-# Botu baslat
+# Botu baslat (Caffeinate ile uykuyu engelliyoruz)
 echo "[2/2] Bot baslatiliyor (5 dk dongu modu aktif)..."
+echo "INFO: Caffeinate aktif, bot calisirken Mac uykuya dalmayacak."
 echo "Durdurmak icin bu pencereyi kapatabilir veya Ctrl+C yapabilirsiniz."
 echo ""
 
-python3 src/scraper.py --loop
+caffeinate -ism python3 src/scraper.py --loop

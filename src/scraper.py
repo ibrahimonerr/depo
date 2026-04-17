@@ -32,8 +32,9 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from config import (
-    CHROME_VERSIONS, MAX_DELAY, MIN_DELAY, MIN_PRICE_THRESHOLD,
-    RENEW_THRESHOLD_PCT, SEARCH_URLS, get_threshold,
+    CHROME_VERSIONS, FETCH_RETRIES, MAX_DELAY, MAX_PAGES,
+    MIN_DELAY, MIN_PRICE_THRESHOLD, RENEW_THRESHOLD_PCT,
+    RETRY_DELAY, SEARCH_URLS, get_threshold,
 )
 from notifier import send_telegram_notification, send_test_notification
 
@@ -55,8 +56,20 @@ def load_state() -> dict:
         try:
             with open(STATE_FILE, encoding="utf-8") as f:
                 data = json.load(f)
+                # Migrate: eski list formatı
                 if isinstance(data.get("seen"), list):
-                    data["seen"] = {asin: 0 for asin in data["seen"]}
+                    data["seen"] = {
+                        asin: {"price": 0, "seen_at": datetime.now().isoformat()}
+                        for asin in data["seen"]
+                    }
+                # Migrate: eski int formatı → yeni dict formatı
+                migrated = {}
+                for asin, val in data.get("seen", {}).items():
+                    if isinstance(val, int):
+                        migrated[asin] = {"price": val, "seen_at": datetime.now().isoformat()}
+                    else:
+                        migrated[asin] = val
+                data["seen"] = migrated
                 return data
         except (json.JSONDecodeError, IOError):
             log("⚠️  State dosyası bozuk, sıfırlanıyor...")
@@ -67,6 +80,22 @@ def save_state(state: dict) -> None:
     state["last_run"] = datetime.now().isoformat()
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+def cleanup_state(state: dict) -> int:
+    """24 saatten eski kayıtları state'den temizler; tekrar taramaları sağlar."""
+    now = datetime.now()
+    to_remove = []
+    for asin, info in state["seen"].items():
+        try:
+            seen_at = datetime.fromisoformat(info.get("seen_at", ""))
+            if (now - seen_at).total_seconds() > 86_400:  # 24 saat
+                to_remove.append(asin)
+        except (ValueError, TypeError):
+            to_remove.append(asin)
+    for asin in to_remove:
+        del state["seen"][asin]
+    return len(to_remove)
 
 
 # ── Price Parsing ─────────────────────────────────────────────────────────────
@@ -244,25 +273,35 @@ def warmup_session(session) -> bool:
 
 
 def fetch_page(url: str, session) -> str | None:
-    """Sayfayı browser impersonation + session cookie ile çeker."""
-    try:
-        resp = session.get(
-            url,
-            timeout=25,
-            headers={
-                "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3",
-                "Referer":         "https://www.amazon.com.tr/",
-            },
-            verify=False
-        )
-        if resp.status_code == 200:
-            return resp.text
-        log(f"   ❌ HTTP {resp.status_code}")
-        return None
-    except Exception as exc:
-        log(f"   ❌ Fetch hatası: {exc}")
-        return None
+    """Sayfayı browser impersonation + session cookie ile çeker. 503 alınırsa retry yapar."""
+    for attempt in range(FETCH_RETRIES + 1):
+        try:
+            resp = session.get(
+                url,
+                timeout=25,
+                headers={
+                    "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3",
+                    "Referer":         "https://www.amazon.com.tr/",
+                },
+                verify=False
+            )
+            if resp.status_code == 200:
+                return resp.text
+            if resp.status_code == 503 and attempt < FETCH_RETRIES:
+                log(f"   ⚠️  HTTP 503 — {int(RETRY_DELAY)}s sonra tekrar deneniyor ({attempt + 1}/{FETCH_RETRIES})...")
+                time.sleep(RETRY_DELAY)
+                continue
+            log(f"   ❌ HTTP {resp.status_code}")
+            return None
+        except Exception as exc:
+            if attempt < FETCH_RETRIES:
+                log(f"   ⚠️  Fetch hatası, tekrar deneniyor: {exc}")
+                time.sleep(RETRY_DELAY)
+                continue
+            log(f"   ❌ Fetch hatası: {exc}")
+            return None
+    return None
 
 
 
@@ -293,6 +332,9 @@ def main(dry_run: bool = False) -> None:
             sys.exit(1)
 
     state = load_state()
+    cleaned = cleanup_state(state)
+    if cleaned:
+        log(f"🧹 {cleaned} eski kayıt temizlendi (24 saat geçti)")
     log(f"📋 Kayıtlı {len(state['seen'])} ürün var")
 
     # Session oluştur (Windows SSL hatalarını önlemek için verify=False)
@@ -306,33 +348,38 @@ def main(dry_run: bool = False) -> None:
     time.sleep(delay)
 
     all_products: list[dict] = []
-    blocked = 0
+    blocked_urls = 0
 
     for i, url in enumerate(SEARCH_URLS):
-        log(f"\n🔍 [{i + 1}/{len(SEARCH_URLS)}] Taranıyor...")
-        log(f"   {url[:90]}...")
+        for page in range(1, MAX_PAGES + 1):
+            page_url = f"{url}&page={page}" if page > 1 else url
+            log(f"\n🔍 [{i + 1}/{len(SEARCH_URLS)}] Sayfa {page}/{MAX_PAGES} taranıyor...")
+            log(f"   {page_url[:90]}...")
 
-        html = fetch_page(url, session)
+            html = fetch_page(page_url, session)
 
-        if not html:
-            log("   ⛔ Sayfa alınamadı")
-            blocked += 1
-            continue
+            if not html:
+                log("   ⛔ Sayfa alınamadı")
+                blocked_urls += 1
+                break  # Bu URL için sayfa taramasını durdur
 
-        if is_blocked(html):
-            log("   ⛔ Bot koruması/CAPTCHA tespit edildi")
-            blocked += 1
-            continue
+            if is_blocked(html):
+                log("   ⛔ Bot koruması/CAPTCHA tespit edildi")
+                blocked_urls += 1
+                break
 
-        products = parse_products(html)
-        all_products.extend(products)
+            products = parse_products(html)
+            all_products.extend(products)
 
-        if i < len(SEARCH_URLS) - 1:
+            if len(products) == 0:
+                log(f"   ℹ️  Sayfa {page} boş — daha fazla sayfa yok")
+                break
+
             delay = random.uniform(MIN_DELAY, MAX_DELAY)
             log(f"   ⏸️  {delay:.1f}s bekleniyor...")
             time.sleep(delay)
 
-    if blocked == len(SEARCH_URLS):
+    if blocked_urls >= len(SEARCH_URLS):
         log("\n⛔ Tüm URL'ler erişilemez. Bir sonraki çalışmada tekrar denenecek.")
         save_state(state)
         return
@@ -363,7 +410,8 @@ def main(dry_run: bool = False) -> None:
             continue
 
         asin       = product["asin"]
-        last_price = state["seen"].get(asin)
+        info       = state["seen"].get(asin)
+        last_price = info["price"] if info else None
 
         if last_price is None:
             reason = "yeni fırsat"
@@ -380,7 +428,7 @@ def main(dry_run: bool = False) -> None:
         if not dry_run:
             ok = send_telegram_notification(product, model, threshold)
             if ok:
-                state["seen"][asin] = product["price"]
+                state["seen"][asin] = {"price": product["price"], "seen_at": datetime.now().isoformat()}
                 state["deals_found_total"] = state.get("deals_found_total", 0) + 1
                 new_deals += 1
                 log("   ✅ Bildirim gönderildi")
@@ -413,8 +461,8 @@ if __name__ == "__main__":
         sys.exit(0 if ok else 1)
 
     if args.loop:
-        INTERVAL = 5 * 60  # 5 dakika
-        log(f"🔄 Loop modu aktif — her {INTERVAL // 60} dakikada bir taranacak")
+        INTERVAL = 80  # 1 dk 20 sn
+        log(f"🔄 Loop modu aktif — her {INTERVAL} saniyede bir taranacak")
         log("⛔ Durdurmak için Ctrl+C yapın\n")
         run = 1
         while True:
