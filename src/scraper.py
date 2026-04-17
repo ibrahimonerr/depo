@@ -318,7 +318,7 @@ def is_blocked(html: str) -> bool:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main(dry_run: bool = False) -> None:
+def main(session, dry_run: bool = False) -> None:
     log("🚀 Amazon Depo iPhone Monitor başlatıldı")
     if dry_run:
         log("⚠️  DRY-RUN modu — bildirim gönderilmeyecek")
@@ -336,16 +336,6 @@ def main(dry_run: bool = False) -> None:
     if cleaned:
         log(f"🧹 {cleaned} eski kayıt temizlendi (24 saat geçti)")
     log(f"📋 Kayıtlı {len(state['seen'])} ürün var")
-
-    # Session oluştur (Windows SSL hatalarını önlemek için verify=False)
-    session = cffi.Session(impersonate=random.choice(CHROME_VERSIONS), verify=False)
-    log(f"🌐 Impersonation: {session.impersonate}")
-
-    # Session warmup: ana sayfayı ziyaret ederek cookie al
-    warmup_session(session)
-    delay = random.uniform(2.0, 4.0)
-    log(f"⏸️  {delay:.1f}s bekleniyor...")
-    time.sleep(delay)
 
     all_products: list[dict] = []
     blocked_urls = 0
@@ -464,15 +454,32 @@ if __name__ == "__main__":
         INTERVAL = 80  # 1 dk 20 sn
         log(f"🔄 Loop modu aktif — her {INTERVAL} saniyede bir taranacak")
         log("⛔ Durdurmak için Ctrl+C yapın\n")
+        
         run = 1
+        session = None
+        last_session_refresh = 0
+
         while True:
+            # Her 2 saatte bir veya ilk başlangıçta oturumu yenile
+            current_time = time.time()
+            if session is None or (current_time - last_session_refresh) > 7200:
+                log(f"🌐 {'Yeni oturum oluşturuluyor' if session is None else 'Oturum tazeleniyor'}...")
+                session = cffi.Session(impersonate=random.choice(CHROME_VERSIONS), verify=False)
+                warmup_session(session)
+                last_session_refresh = current_time
+                time.sleep(random.uniform(2, 4))
+
             log(f"━━━ Tarama #{run} ━━━")
             try:
-                main(dry_run=args.dry_run)
+                main(session, dry_run=args.dry_run)
             except Exception as exc:
                 log(f"❌ Beklenmeyen hata: {exc}")
-            log(f"⏳ Sonraki tarama {INTERVAL // 60} dakika sonra...\n")
+            
+            log(f"⏳ Sonraki tarama {INTERVAL} saniye sonra...\n")
             time.sleep(INTERVAL)
             run += 1
     else:
-        main(dry_run=args.dry_run)
+        # Tek seferlik çalışma için yeni session oluştur
+        session = cffi.Session(impersonate=random.choice(CHROME_VERSIONS), verify=False)
+        warmup_session(session)
+        main(session, dry_run=args.dry_run)
