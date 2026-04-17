@@ -38,7 +38,6 @@ SEARCH_URLS: list[str] = [
     "https://www.amazon.com.tr/s?i=warehouse-deals&k=iphone&m=A215JX4S9CANSO&srs=44219324031&refinements=p_123%3A110955",
     
     # 2. Nokta Atışı Model Aramaları (iPhone 17 Serisi)
-    "https://www.amazon.com.tr/s?k=iphone+17+pro+max&i=warehouse-deals&m=A215JX4S9CANSO&srs=44219324031",
     "https://www.amazon.com.tr/s?k=iphone+17+pro&i=warehouse-deals&m=A215JX4S9CANSO&srs=44219324031",
     "https://www.amazon.com.tr/s?k=iphone+17&i=warehouse-deals&m=A215JX4S9CANSO&srs=44219324031",
 ]
