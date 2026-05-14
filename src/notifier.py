@@ -17,6 +17,21 @@ def _format_price(amount: int) -> str:
     return f"{amount:,}".replace(",", ".")
 
 
+def _model_to_display(model: str) -> str:
+    """
+    'iphone 17 pro max' → 'iPhone 17 Pro Max'
+    model parametresinden temiz, okunabilir başlık üretir.
+    """
+    words = model.split()
+    result = []
+    for w in words:
+        if w.lower() == "iphone":
+            result.append("iPhone")
+        else:
+            result.append(w.capitalize())
+    return " ".join(result)
+
+
 def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
     """
     Bir fırsat için Telegram bildirimi gönderir.
@@ -42,32 +57,20 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
     thresh_fmt  = _format_price(threshold)
     savings_fmt = _format_price(savings)
 
-    title_clean = deal["title"].replace("*", "").replace("_", "").replace("`", "")
-    
-    # Gereksiz kelimeleri temizle
-    TO_REMOVE = [
-        "Apple ", "iPhone için ", " özellikli ",
-        "Siyah", "Beyaz", "Mavi", "Yeşil", "Sarı", "Kırmızı", "Mor", "Pembe",
-        "Titanyum", "Naturel", "Doğal", "Çöl", "Altın", "Gümüş", "Uzay", "Gece", "Yıldız",
-        "Black", "White", "Blue", "Green", "Yellow", "Red", "Purple", "Pink",
-        "Titanium", "Natural", "Desert", "Gold", "Silver", "Space", "Midnight", "Starlight"
-    ]
-    for word in TO_REMOVE:
-        title_clean = title_clean.replace(word, "")
-    
-    # Fazla boşlukları temizle ve boyutu koru
-    title_clean = " ".join(title_clean.split()).strip()[:100]
-    
-    detected = deal.get("detected_at", datetime.now().strftime("%d.%m.%Y %H:%M"))
+    # Başlık: "iPhone 17 Pro Max" gibi temiz model adı (Amazon açıklaması değil)
+    model_display = _model_to_display(model)
 
+    condition = deal.get("condition", "İkinci El / Depo")
     cart_link = f"https://www.amazon.com.tr/gp/aws/cart/add.html?ASIN.1={deal['asin']}&Quantity.1=1"
 
     message = (
-        f"📱 *{title_clean} — {price_fmt} ₺*\n"
-        f"🎯 Eşik:  _{thresh_fmt} ₺_\n"
-        f"📦 Durum: *{deal.get('condition', 'İkinci El / Depo')}*\n\n"
-        f"🛒 [Ürünü Görüntüle]({deal['link']})\n"
-        f"⚡ [HIZLI SEPETE EKLE]({cart_link})"
+        f"📱 *{model_display} — {price_fmt} ₺*\n"
+        f"\n"
+        f"📦 {condition}\n"
+        f"💸 {savings_fmt} ₺ tasarruf (%{savings_pct})\n"
+        f"🎯 Eşik: {thresh_fmt} ₺\n"
+        f"\n"
+        f"[🛒 Ürünü Görüntüle]({deal['link']})  ·  [⚡ Sepete Ekle]({cart_link})"
     )
 
     url = TELEGRAM_API.format(token=token, method="sendMessage")
@@ -78,7 +81,7 @@ def send_telegram_notification(deal: dict, model: str, threshold: int) -> bool:
                 "chat_id":                  chat_id,
                 "text":                     message,
                 "parse_mode":               "Markdown",
-                "disable_web_page_preview": False,
+                "disable_web_page_preview": True,
             },
             timeout=15,
         )

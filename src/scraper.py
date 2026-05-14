@@ -452,7 +452,7 @@ if __name__ == "__main__":
         sys.exit(0 if ok else 1)
 
     if args.loop:
-        INTERVAL = 80  # 1 dk 20 sn
+        INTERVAL = 45  # 45 sn
         log(f"🔄 Loop modu aktif — her {INTERVAL} saniyede bir taranacak")
         log("⛔ Durdurmak için Ctrl+C yapın\n")
         

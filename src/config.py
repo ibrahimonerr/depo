@@ -34,12 +34,10 @@ def get_threshold(title: str) -> tuple:
 # Kategori referansı: srs=44219324031
 # Apple marka filtresi: refinements=p_123%3A110955
 SEARCH_URLS: list[str] = [
-    # 1. Genel iPhone Araması (Apple Marka Filtreli - En Kararlı)
+    # Genel iPhone Araması (Apple Marka Filtreli)
+    # Bu tek URL; 17 Pro Max, 17 Pro, 17 Air, 17, 16 Pro Max, 16 Pro dahil
+    # tüm Warehouse iPhone modellerini kapsar. Ek URL'ler gereksiz tekrardı.
     "https://www.amazon.com.tr/s?i=warehouse-deals&k=iphone&m=A215JX4S9CANSO&srs=44219324031&refinements=p_123%3A110955",
-    
-    # 2. Nokta Atışı Model Aramaları (iPhone 17 Serisi)
-    "https://www.amazon.com.tr/s?k=iphone+17+pro&i=warehouse-deals&m=A215JX4S9CANSO&srs=44219324031",
-    "https://www.amazon.com.tr/s?k=iphone+17&i=warehouse-deals&m=A215JX4S9CANSO&srs=44219324031",
 ]
 
 # ── Bildirim Ayarları ─────────────────────────────────────────────────────────
@@ -50,8 +48,8 @@ MIN_PRICE_THRESHOLD: int = 45_000
 RENEW_THRESHOLD_PCT: float = 0.90   # %10 daha ucuzsa yeniden bildir
 
 # Sayfa istekleri arasında bekleme süresi (saniye)
-MIN_DELAY: float = 3.0
-MAX_DELAY: float = 7.0
+MIN_DELAY: float = 1.5
+MAX_DELAY: float = 3.5
 
 # HTTP hata durumunda tekrar deneme sayısı ve bekleme süresi (saniye)
 FETCH_RETRIES: int   = 2
